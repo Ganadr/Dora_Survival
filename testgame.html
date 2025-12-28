@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dora-Survivor: Bio-Warfare</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #58a6ff;
+            --alert-color: #ff7b72;
+            --success-color: #3fb950;
+            --border-color: #30363d;
+            --panel-bg: #161b22;
+            --highlight: #f2cc60;
+            --rare: #a371f7;
+            --legendary: #ffdd57;
+        }
+        body { font-family: 'Consolas', 'Courier New', monospace; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; font-size: 14px; user-select: none; }
+        .container { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+        
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 600px) { .dashboard { grid-template-columns: 1fr; } }
+
+        .box { border: 1px solid var(--border-color); background: var(--panel-bg); padding: 15px; border-radius: 6px; position: relative; }
+        h2, h3 { margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; color: #fff; font-size: 16px; }
+        
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .stat-val { font-weight: bold; color: #fff; }
+        
+        .trait-tag { display: inline-block; background: #238636; color: white; padding: 3px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.2); }
+        
+        #log-area { height: 200px; overflow-y: auto; font-size: 13px; color: #8b949e; border: 1px solid var(--border-color); padding: 10px; background: #000; }
+        .log-new { color: var(--success-color); }
+        .log-danger { color: var(--alert-color); }
+        .log-boss { color: var(--rare); font-weight: bold; }
+        
+        .enemy-container { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; padding-bottom: 5px; }
+        .enemy-card { 
+            border: 2px solid var(--border-color); padding: 10px; min-width: 140px; border-radius: 6px; background: #2a0a0a; 
+            cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .enemy-card:hover { border-color: #8b949e; }
+        .enemy-card.selected { border-color: var(--highlight); background: #3e3820; }
+        .enemy-card.boss { border-color: var(--rare); background: #2a0e38; box-shadow: 0 0 10px var(--rare); }
+        .enemy-card.dead { opacity: 0.3; pointer-events: none; filter: grayscale(100%); }
+        .enemy-name { color: var(--alert-color); font-weight: bold; display: block; margin-bottom: 5px;}
+        .enemy-hp-bar { height: 4px; background: #555; margin: 5px 0; border-radius: 2px; }
+        .enemy-hp-fill { height: 100%; background: var(--alert-color); width: 100%; transition: width 0.3s; }
+
+        .quest-bar-container { background: #222; height: 10px; border-radius: 5px; margin-top: 5px; border: 1px solid #555; }
+        .quest-bar-fill { background: var(--highlight); height: 100%; width: 0%; transition: width 0.5s; }
+
+        .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        button { background: #21262d; color: #c9d1d9; border: 1px solid var(--border-color); padding: 12px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        button:hover { background: #30363d; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-gadget { color: var(--highlight); border-color: #9e8c43; }
+        .btn-gadget:hover { background: #3e3820; }
+        
+        .hidden { display: none !important; }
+        
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: var(--panel-bg); border: 2px solid var(--success-color); padding: 20px; width: 85%; max-width: 500px; text-align: center; max-height: 80vh; overflow-y: auto; }
+        .evo-option { display: block; width: 100%; margin: 10px 0; padding: 15px; border: 1px solid var(--success-color); background: #0d1117; color: var(--success-color); cursor: pointer; text-align: left; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="box" style="text-align: center; border-color: var(--highlight);">
+        <h2 style="color: var(--highlight); margin:0;">DORA-SURVIVOR: BIO-WARFARE</h2>
+    </div>
+
+    <div class="dashboard">
+        <div class="box">
+            <h3>👤 Người Sống Sót</h3>
+            <div class="stat-row"><span>HP:</span> <span class="stat-val" id="p-hp">100/100</span></div>
+            <div class="stat-row"><span>ATK:</span> <span class="stat-val" id="p-atk">15</span></div>
+            <div class="stat-row"><span>DEF:</span> <span class="stat-val" id="p-def">5</span></div>
+            <div class="stat-row"><span>SPD:</span> <span class="stat-val" id="p-spd">10</span></div>
+            <div style="margin-top:10px; border-top:1px dashed #555; padding-top:5px;">
+                <div class="stat-row"><span>🧬 Gen:</span> <span class="stat-val" id="p-gen">0</span></div>
+                <div class="stat-row"><span>📦 Kho:</span> <span class="stat-val" id="p-inventory">Thịt: 2, Thuốc: 1</span></div>
+            </div>
+            
+            <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <small>Đặc tính:</small>
+                <button onclick="showTraits()" style="padding: 2px 8px; font-size: 11px; width: auto; background: #222; border: 1px solid #555;">👁️ Chi tiết</button>
+            </div>
+            <div id="p-traits" style="margin-top: 5px;">Chưa có đặc tính</div>
+        </div>
+
+        <div class="box">
+            <h3>🚀 Nhiệm Vụ: Sửa Cỗ Máy</h3>
+            <div class="stat-row"><span>📅 Ngày sinh tồn:</span> <span class="stat-val" id="g-day">1</span></div>
+            <div class="stat-row"><span>🧩 Linh kiện:</span> <span class="stat-val" id="g-parts">0/5</span></div>
+            <div class="quest-bar-container">
+                <div class="quest-bar-fill" id="quest-bar"></div>
+            </div>
+            <p id="next-event" style="font-size: 12px; color: #8b949e; margin-top: 10px;">
+                Sự kiện tiếp theo: Boss xuất hiện vào Ngày 10.
+            </p>
+            
+            <div id="combat-area" class="hidden" style="margin-top: 10px; border-top: 1px solid #333; padding-top:10px;">
+                <small style="color: #ff7b72;">⚠️ ĐANG GIAO CHIẾN! (Chọn mục tiêu)</small>
+                <div class="enemy-container" id="e-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="log-area">
+        <div>> Khởi động nhật ký sinh tồn...</div>
+        <div>> Mục tiêu: Thu thập 5 linh kiện từ các Boss (xuất hiện mỗi 10 ngày).</div>
+    </div>
+
+    <div class="box">
+        <div id="mode-explore" class="action-grid">
+            <button onclick="explore()">📅 TIẾN TỚI 1 NGÀY (Thám hiểm)</button>
+            <button onclick="rest()">⛺ NGHỈ NGƠI (Hồi máu, Ăn thịt)</button>
+            <button onclick="useMedkit()">🧰 DÙNG THUỐC (Hồi máu nhanh)</button>
+            <button class="btn-gadget" onclick="useTablecloth()">🍽️ KHĂN TRẢI BÀN (Gen -> Thịt)</button>
+            <button onclick="openEvo()" id="btn-evo" style="grid-column: span 2; border-color: #3fb950; color: #3fb950;">🧬 DÙNG SÚNG TIẾN HÓA (50 Gen)</button>
+        </div>
+
+        <div id="mode-combat" class="action-grid hidden">
+            <button onclick="performAction('basic')">⚔️ TẤN CÔNG THƯỜNG</button>
+            <button class="btn-gadget" onclick="performAction('air_cannon')">💥 Đại Bác Không Khí(DMG Cao)</button>
+            <button class="btn-gadget" onclick="performAction('dictator_switch')">☠️ Công Tắc Độc Tài(Xóa Sổ - No Loot)</button>
+            <button class="btn-gadget" onclick="performAction('evo_gun_enemy')">🔫 Súng Tiến Hóa (Debuff/Xóa trait)</button>
+            <button class="btn-gadget" onclick="performAction('counter_mantle')">🛑 Khăn Choàng A-lê-hấp (Chặn)</button>
+            <button class="btn-gadget" onclick="performAction('anywhere_door')">🚪 Cửa Thần Kỳ (Chạy)</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-overlay" class="hidden">
+    <div class="modal-content">
+        <h3 id="modal-title" style="color: #3fb950;">THÔNG BÁO</h3>
+        <p id="modal-desc" style="color: #8b949e; font-size: 13px;">Nội dung</p>
+        <div id="modal-body"></div>
+        <button onclick="closeModal()" id="btn-close-modal" style="margin-top:20px; width:100%;">Đóng</button>
+    </div>
+</div>
+
+<script>
+    
+    /* --- DATA: SINH HỌC --- */
+    const PARTS_DB = {
+        ATK: [
+            { name: "Vuốt", tag: "MELEE" }, { name: "Nanh", tag: "DRAIN" }, { name: "Gai", tag: "THORNS" }, 
+            { name: "Đuôi", tag: "MELEE" }, { name: "Sừng", tag: "MELEE" }, { name: "Xúc Tu", tag: "MELEE" }
+        ],
+        DEF: [
+            { name: "Da", tag: "SKIN" }, { name: "Vỏ", tag: "ARMOR" }, { name: "Xương", tag: "SKELETON" }, { name: "Vảy", tag: "ARMOR" }
+        ],
+        HP:  [
+            { name: "Tim", tag: "CORE" }, { name: "Máu", tag: "FLUID" }, { name: "Tế Bào", tag: "CELL" }
+        ],
+        SPD: [
+            { name: "Cánh", tag: "FLIGHT" }, { name: "Chân", tag: "MOVE" }, { name: "Mắt", tag: "SIGHT" }
+        ]
+    };
+
+    const TIERS_DB = [
+        { name: "Cường Hoá", mod: 1.0, rare: 1, element: "NONE" }, 
+        { name: "Gỗ Hóa", mod: 1.1, rare: 2, element: "HARD" },
+        { name: "Lửa", mod: 1.3, rare: 2, element: "FIRE" },   
+        { name: "Băng", mod: 1.3, rare: 2, element: "ICE" },   
+        { name: "Độc", mod: 1.2, rare: 2, element: "POISON" }, 
+        { name: "Huyết", mod: 1.4, rare: 3, element: "BLOOD" },
+        { name: "Tinh Thể", mod: 1.8, rare: 3, element: "HARD" }, 
+        { name: "Hạt Nhân", mod: 2.2, rare: 4, element: "RADIOACTIVE" }, 
+        { name: "Hư Không", mod: 2.5, rare: 4, element: "VOID" },
+        { name: "Vũ Trụ", mod: 3.0, rare: 5, element: "COSMIC" }
+    ];
+
+    const ENTITIES = ["Zombie", "Chuột", "Gián", "Sói", "Người Máy", "Cây Đột Biến", "Thằn Lằn"];
+    const BOSS_NAMES = ["Khổng Lồ Một Mắt", "Bạch Tuộc Không Gian", "Máy Chém Rỉ Sét", "Sói Alpha Đột Biến"];
+    const FINAL_BOSS = "VUA HỦY DIỆT";
+
+    // --- CẬP NHẬT: Thêm Boss vào Loot Table để thưởng to hơn ---
+    const LOOT_TABLE = {
+        "Zombie": { meat: 0.8, gen: 10, med: 0.05 },
+        "Chuột":  { meat: 0.7, gen: 5,  med: 0.05 },
+        "Gián":   { meat: 0.2, gen: 5,  med: 0.05 },
+        "Sói":    { meat: 1.0, gen: 15, med: 0.0 },
+        "Thằn Lằn": { meat: 0.9, gen: 10, med: 0.0 },
+        "Người Máy": { meat: 0.0, gen: 40, med: 0.1 }, 
+        "Cây Đột Biến": { meat: 0.1, gen: 10, med: 0.4 },
+        
+        // --- Thêm BOSS ---
+        "Khổng Lồ Một Mắt": { meat: 1.0, gen: 100, med: 0.3 },
+        "Bạch Tuộc Không Gian": { meat: 1.0, gen: 120, med: 0.3 },
+        "Máy Chém Rỉ Sét": { meat: 0.0, gen: 150, med: 0.3 }, // Nhiều Gen
+        "Sói Alpha Đột Biến": { meat: 1.0, gen: 120, med: 0.3 },
+        "VUA HỦY DIỆT": { meat: 1.0, gen: 500, med: 1.0 } // Trùm cuối
+    };
+
+    let player = {
+        hp: 100, maxHp: 100, atk: 15, def: 5, spd: 10, regen: 0, 
+        genPoints: 0, items: { meat: 3, medkit: 1 }, 
+        traits: [], days: 1, parts: 0
+    };
+
+    let currentEnemies = [];
+    let isCountering = false;
+    let isBossFight = false;
+
+    /* --- UTILITIES --- */
+    function log(msg, type = "info") {
+        const div = document.getElementById("log-area");
+        div.innerHTML += `<div class="${type==="danger"?"log-danger":type==="new"?"log-new":type==="boss"?"log-boss":"log-info"}">> ${msg}</div>`;
+        div.scrollTop = div.scrollHeight;
+    }
+    function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    
+    function toggleInput(disabled) {
+        const buttons = document.querySelectorAll('#mode-combat button');
+        buttons.forEach(btn => {
+            btn.disabled = disabled;
+            btn.style.opacity = disabled ? "0.5" : "1";
+            btn.style.cursor = disabled ? "not-allowed" : "pointer";
+        });
+    }
+
+    /* --- TRAIT GENERATOR --- */
+    function generateSynergyTrait(forceTier = null) {
+        let r = Math.random();
+        let type = "ATK";
+        if (r < 0.3) type = "ATK"; else if (r < 0.6) type = "DEF"; else if (r < 0.85) type = "HP"; else if (r < 0.95) type = "SPD"; else type = "REGEN";
+
+        let desc = "", finalVal = 0, passive = null, fullName = "";
+
+        if (type === "REGEN") {
+            let val = 4;
+            let rareMod = rand(1, 3);
+            finalVal = val * rareMod;
+            fullName = "Tế Bào Tái Sinh" + (rareMod > 1 ? ` Mk.${rareMod}` : "");
+            desc = `Hồi ${finalVal} HP/lượt`;
+        } else {
+            let partList = PARTS_DB[type];
+            let part = partList[Math.floor(Math.random() * partList.length)];
+
+            let tierList = forceTier ? [forceTier] : TIERS_DB;
+            if (!forceTier) {
+                let rt = Math.random();
+                tierList = TIERS_DB.filter(t => t.rare <= (rt < 0.6 ? 1 : rt < 0.9 ? 2 : rt < 0.98 ? 3 : 5));
+            }
+            let prefix = pickRandom(tierList);
+
+            let baseVal = (type==="HP"?20 : type==="ATK"?8 : 5);
+            
+            if (prefix.name === "Cường Hoá") {
+                let bonusPercent = rand(1, 15);
+                finalVal = Math.floor(baseVal * (1 + bonusPercent/100));
+                if (finalVal <= baseVal) finalVal = baseVal + 1; 
+                desc = `${type} +${finalVal} (Cường hoá ${bonusPercent}%)`;
+            } else {
+                finalVal = Math.floor(baseVal * prefix.mod * ((Math.random()*0.4)+0.8));
+                desc = `${type} +${finalVal}`;
+            }
+            finalVal = Math.max(1, finalVal);
+
+            let passiveDesc = "";
+            if (prefix.element === "FIRE" && part.tag === "MELEE") { passive = "BURN"; passiveDesc = " (Cháy +5 DMG)"; }
+            else if (prefix.element === "BLOOD" && part.tag === "DRAIN") { passive = "LIFESTEAL"; passiveDesc = " (Hút 20% HP)"; }
+            else if (prefix.element === "POISON" && (part.tag === "THORNS" || part.tag === "SKIN")) { passive = "POISON_SKIN"; passiveDesc = " (Phản độc)"; }
+            else if (prefix.element === "VOID" && type === "ATK") { passive = "PIERCE"; passiveDesc = " (Xuyên 50% Giáp)"; }
+            else if (prefix.element === "RADIOACTIVE" && part.tag === "CORE") { passive = "REACTOR"; passiveDesc = " (Hồi Gen, Trừ Máu)"; }
+            else if (prefix.element === "ICE" && type === "SPD") { passive = "FREEZE_AURA"; passiveDesc = " (Giảm Tốc Địch)"; }
+
+            fullName = `${part.name} ${prefix.name}`;
+            desc += passiveDesc;
+        }
+
+        return { name: fullName, type: type, val: finalVal, desc: desc, passive: passive };
+    }
+
+    /* --- UI UPDATE --- */
+    function updateUI() {
+        document.getElementById("p-hp").innerText = `${Math.max(0, player.hp)}/${player.maxHp}`;
+        document.getElementById("p-atk").innerText = player.atk;
+        document.getElementById("p-def").innerText = player.def;
+        document.getElementById("p-spd").innerText = player.spd;
+        document.getElementById("p-gen").innerText = player.genPoints;
+        document.getElementById("p-inventory").innerText = `Thịt: ${player.items.meat}, Thuốc: ${player.items.medkit}`;
+        
+        document.getElementById("p-traits").innerHTML = player.traits.map(t => {
+            let style = t.passive ? 'border-color: #ffdd57; color: #ffdd57;' : '';
+            return `<span class="trait-tag" style="${style}" title="${t.desc}">${t.name}</span>`
+        }).join("") || "Không";
+        
+        document.getElementById("g-day").innerText = player.days;
+        document.getElementById("g-parts").innerText = `${player.parts}/5`;
+        document.getElementById("quest-bar").style.width = `${(player.parts/5)*100}%`;
+        
+        let nextBossDay = Math.ceil(player.days / 10) * 10;
+        if (player.days % 10 === 0 && !isBossFight) nextBossDay += 10; 
+        document.getElementById("next-event").innerText = `Mục tiêu kế tiếp: Ngày ${nextBossDay} (Còn ${nextBossDay - player.days} ngày)`;
+
+        document.getElementById("btn-evo").disabled = player.genPoints < 50;
+
+        if (player.hp <= 0) {
+            toggleInput(true); 
+            showModal("BẠN ĐÃ TỬ NẠN", "Thế giới này quá khắc nghiệt. Hãy thử lại.", true);
+        }
+    }
+
+    function showTraits() {
+        if (player.traits.length === 0) { showModal("HỒ SƠ GEN", "Chưa có đặc tính."); return; }
+        let html = `<div style="text-align: left;">`;
+        player.traits.forEach(t => {
+            let color = t.passive ? '#ffdd57' : '#3fb950';
+            html += `<div style="border:1px solid ${color};padding:8px;margin-bottom:5px;border-radius:4px;"><div style="color:${color};font-weight:bold">${t.name}</div><div style="font-size:12px;color:#ccc">${t.desc}</div></div>`;
+        });
+        html += `</div>`;
+        showModal(`HỒ SƠ GEN (Tổng: ${player.traits.length})`, "", false, html);
+    }
+
+    /* --- GAME LOOP --- */
+    function explore() {
+        if (player.items.meat <= 0 && player.hp < 20) { log("Quá đói và yếu!", "danger"); return; }
+        if (player.days % 10 === 0) { startCombat(true); return; }
+        player.hp = Math.max(1, player.hp - 2); player.days++; updateUI();
+        if (Math.random() > 0.35) startCombat(false); else findLoot();
+    }
+    function findLoot() {
+        let r = rand(1, 100);
+        if (r < 50) { player.items.meat += 2; log("Tìm thấy 2 Thịt biến dị.", "new"); }
+        else if (r < 80) { player.genPoints += 25; log("Hấp thụ được 25 Gen tự do.", "new"); }
+        else { player.items.medkit += 1; log("Tuyệt vời! Tìm thấy 1 Hộp Cứu Thương.", "new"); }
+        updateUI();
+    }
+
+    /* --- COMBAT SYSTEM --- */
+    function startCombat(bossMode) {
+        isBossFight = bossMode; currentEnemies = []; isCountering = false; 
+        if (bossMode) {
+            let bossName = player.parts === 4 ? FINAL_BOSS : pickRandom(BOSS_NAMES);
+            let m = 1.5 + (player.days / 20);
+            let traits = []; for(let i=0; i<3; i++) traits.push(generateSynergyTrait(pickRandom(TIERS_DB.filter(t=>t.rare>=3))));
+            currentEnemies.push({ id: 0, name: bossName, isBoss: true, stats: { hp: Math.floor(150*m), maxHp: Math.floor(150*m), atk: Math.floor(20*m), def: Math.floor(5*m), spd: Math.floor(8*m) }, traits: traits, alive: true, selected: false });
+            log(`🔥🔥 BÁO ĐỘNG: ${bossName} XUẤT HIỆN!`, "boss");
+        } else {
+            let count = rand(1, 3);
+            for(let i=0; i<count; i++) {
+                let m = 1 + (player.days / 50);
+                let traits = []; let tc = rand(1, 2); for(let k=0; k<tc; k++) traits.push(generateSynergyTrait());
+                let base = { hp: 40*m, maxHp: 40*m, atk: 10*m, def: 0, spd: 5 };
+                traits.forEach(t => { if(t.type==="HP"){base.hp+=t.val;base.maxHp+=t.val;} if(t.type==="ATK")base.atk+=t.val; if(t.type==="DEF")base.def+=t.val; if(t.type==="SPD")base.spd+=t.val; });
+                
+                let name = pickRandom(ENTITIES);
+                currentEnemies.push({ id: i, name: name, isBoss: false, stats: base, traits: traits, alive: true, selected: false });
+            }
+            log(`Phát hiện ${count} kẻ địch chặn đường.`);
+        }
+        document.getElementById("mode-explore").classList.add("hidden"); document.getElementById("mode-combat").classList.remove("hidden"); document.getElementById("combat-area").classList.remove("hidden");
+        toggleInput(false); renderEnemies();
+    }
+    function renderEnemies() {
+        const div = document.getElementById("e-list"); div.innerHTML = "";
+        currentEnemies.forEach(e => {
+            let hpPct = (e.stats.hp / e.stats.maxHp) * 100;
+            let el = document.createElement("div");
+            el.className = `enemy-card ${e.isBoss ? 'boss' : ''} ${e.alive ? '' : 'dead'} ${e.selected ? 'selected' : ''}`;
+            el.onclick = () => { if(e.alive) { currentEnemies.forEach(x => x.selected = false); e.selected = true; renderEnemies(); } };
+            el.innerHTML = `<span class="enemy-name">${e.name}</span><div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:${hpPct}%"></div></div><small>HP: ${Math.ceil(e.stats.hp)} | ATK: ${Math.ceil(e.stats.atk)}</small><br><div style="margin-top:4px;">${e.traits.map(t=>`<span class="trait-tag">${t.name}</span>`).join("")}</div>`;
+            div.appendChild(el);
+        });
+    }
+
+    function performAction(type) {
+        let targets = currentEnemies.filter(e => e.selected && e.alive);
+        if (targets.length === 0 && currentEnemies.filter(e => e.alive).length === 1) targets = [currentEnemies.find(e => e.alive)];
+        if (type !== 'anywhere_door' && type !== 'counter_mantle' && targets.length === 0) { log("Hãy chọn mục tiêu!", "danger"); return; }
+        toggleInput(true);
+
+        if (type === 'counter_mantle') { isCountering = true; log("Tung Khăn Choàng A-lê-hấp!", "info"); setTimeout(enemiesTurn, 500); return; }
+        
+        if (type === 'anywhere_door') { 
+            log("Mở Cửa Thần Kỳ... Chạy thoát thành công!", "info"); 
+            endCombat(false); 
+            return; 
+        }
+
+        let t = targets[0], dmg = Math.max(1, player.atk - t.stats.def), turnEnded = true;
+        switch(type) {
+            case 'basic':
+                if (player.traits.some(x => x.passive === "PIERCE")) { dmg = Math.max(1, player.atk - (t.stats.def/2)); log("Xuyên Giáp!", "success"); }
+                if (player.traits.some(x => x.passive === "BURN")) { dmg += 5; log("Thiêu đốt +5 DMG!", "danger"); }
+                if (player.traits.some(x => x.passive === "LIFESTEAL")) { let h = Math.ceil(dmg*0.2); player.hp = Math.min(player.maxHp, player.hp+h); log(`Hút ${h} HP!`, "new"); }
+                t.stats.hp -= dmg; log(`Tấn công ${t.name}: ${Math.floor(dmg)} ST.`); break;
+            case 'air_cannon': t.stats.hp -= (Math.floor(dmg*2.5)+20); log(`Đại bác bắn ${t.name}: ST lớn!`); break;
+            case 'dictator_switch': if(t.isBoss)log("Boss miễn nhiễm!","danger"); else if(confirm("Xóa sổ (Không Loot)?")){t.stats.hp=0;t.noLoot=true;log(`${t.name} bị xóa sổ.`,"danger");}else{turnEnded=false;toggleInput(false);} break;
+            case 'evo_gun_enemy': 
+                let mode = prompt("SÚNG TIẾN HÓA:\n1. Thoái hóa (Giảm chỉ số)\n2. Tẩy Gen (Xóa 1 đặc tính của địch)", "1");
+                if (mode === "1") {
+                    t.stats.atk = Math.floor(t.stats.atk * 0.6); t.stats.def = Math.floor(t.stats.def * 0.6); t.stats.hp -= 15;
+                    log(`Thoái hóa ${t.name}: Chỉ số giảm mạnh!`);
+                } else if (mode === "2") {
+                    if (t.traits.length > 0) {
+                        let ridx = rand(0, t.traits.length-1);
+                        let removed = t.traits.splice(ridx, 1)[0];
+                        if(removed.type==="ATK") t.stats.atk-=removed.val;
+                        if(removed.type==="DEF") t.stats.def-=removed.val;
+                        if(removed.type==="HP"){t.stats.maxHp-=removed.val; t.stats.hp=Math.min(t.stats.hp, t.stats.maxHp);}
+                        if(removed.type==="SPD") t.stats.spd-=removed.val;
+                        log(`Tẩy Gen ${t.name}: Mất đặc tính [${removed.name}]!`, "success");
+                    } else log(`${t.name} không còn Gen nào để xóa!`, "danger");
+                } else { turnEnded = false; toggleInput(false); }
+                break;
+        }
+        if (turnEnded) { currentEnemies.forEach(e => { if(e.stats.hp<=0) e.alive=false; }); renderEnemies(); if(currentEnemies.every(e=>!e.alive)) endCombat(true); else setTimeout(enemiesTurn, 500); }
+    }
+
+    function enemiesTurn() {
+        if(currentEnemies.every(e=>!e.alive)) { endCombat(true); return; }
+        log("--- Lượt kẻ địch ---", "info");
+        let totalDmg = 0;
+        currentEnemies.forEach(e => {
+            if (e.alive) {
+                if (isCountering) { let r = Math.floor(e.stats.atk*1.5); e.stats.hp-=r; log(`✨ A-lê-hấp! Đòn của ${e.name} bị hất ngược lại (${r} ST)!`,"success"); }
+                else {
+                    let d = Math.max(1, e.stats.atk - player.def);
+                    let chance = (player.spd - e.stats.spd)*2;
+                    if(player.traits.some(x=>x.passive==="FREEZE_AURA")) chance+=10;
+                    if(Math.random()*100 < chance) log(`Né được đòn của ${e.name}!`,"success");
+                    else { 
+                        if(player.traits.some(x=>x.passive==="POISON_SKIN")){e.stats.hp-=3;log(`${e.name} trúng độc (-3 HP)`,"success");}
+                        totalDmg+=d; log(`${e.name} gây ${d} ST!`,"danger"); 
+                    }
+                }
+            }
+        });
+        if(!isCountering) player.hp-=totalDmg; isCountering=false;
+        if (player.hp <= 0) { log("☠️ Bạn đã gục ngã...", "danger"); updateUI(); return; }
+        if(player.traits.some(x=>x.passive==="REACTOR")){player.genPoints+=5;player.hp-=2;log("Tim Hạt Nhân: +5 Gen, -2 HP","boss"); if(player.hp<=0){updateUI();return;}}
+        currentEnemies.forEach(e => { if(e.stats.hp<=0) e.alive=false; }); renderEnemies(); updateUI();
+        if(currentEnemies.every(e=>!e.alive)) endCombat(true); else toggleInput(false);
+    }
+
+    function endCombat(win) {
+        toggleInput(false);
+        if(!win) { document.getElementById("mode-explore").classList.remove("hidden"); document.getElementById("mode-combat").classList.add("hidden"); document.getElementById("combat-area").classList.add("hidden"); return; }
+        
+        let totalGen = 0, totalMeat = 0, totalMed = 0;
+        let droppedPart = false;
+
+        currentEnemies.forEach(e => {
+            if (e.noLoot) return;
+            
+            // Tìm trong bảng loot (Đã bổ sung Boss)
+            let table = LOOT_TABLE[e.name] || { meat: 0.5, gen: 10, med: 0.0 };
+            
+            if (Math.random() < table.meat) totalMeat += 1;
+            if (Math.random() < table.med) totalMed += 1;
+            let gen = table.gen + rand(0, 5);
+
+            // Bonus Trait
+            e.traits.forEach(t => {
+                if (t.name.includes("Huyết") || t.name.includes("Máu")) { if (Math.random() < 0.5) totalMeat += 1; }
+                if (t.name.includes("Tinh Thể") || t.name.includes("Gỗ") || t.name.includes("Sắt") || t.name.includes("Titan")) gen += 10;
+                if (t.name.includes("Hạt Nhân") || t.name.includes("Vũ Trụ")) gen += 20;
+            });
+
+            totalGen += gen;
+            if (e.isBoss) droppedPart = true;
+        });
+
+        player.genPoints += totalGen;
+        player.items.meat += totalMeat;
+        player.items.medkit += totalMed;
+
+        if (player.regen > 0) player.hp = Math.min(player.maxHp, player.hp + player.regen);
+
+        let msg = `Thắng! +${totalGen} Gen`;
+        if (totalMeat > 0) msg += `, +${totalMeat} Thịt`;
+        if (totalMed > 0) msg += `, +${totalMed} Thuốc`;
+        log(msg, "new");
+
+        if (droppedPart) { 
+            player.parts++; 
+            log(`🌟 TÌM THẤY 1 LINH KIỆN THỜI GIAN! (${player.parts}/5)`, "boss"); 
+            if (player.parts >= 5) {
+                showModal("CHIẾN THẮNG", "Bạn đã sửa xong Cỗ Máy Thời Gian và trở về nhà!", true);
+                return;
+            } 
+        }
+        if (isBossFight) player.days++;
+        document.getElementById("mode-explore").classList.remove("hidden"); document.getElementById("mode-combat").classList.add("hidden"); document.getElementById("combat-area").classList.add("hidden"); updateUI();
+    }
+
+    function rest() { if(player.items.meat>0){player.items.meat--;player.hp=Math.min(player.maxHp,player.hp+40);log("Ăn thịt (+40 HP).","new");}else log("Hết thịt!","danger"); updateUI(); }
+    function useMedkit() { if(player.items.medkit>0){player.items.medkit--;player.hp=Math.min(player.maxHp,player.hp+70);log("Dùng thuốc (+70 HP).","new");}else log("Hết thuốc!","danger"); updateUI(); }
+    function useTablecloth() { if(player.genPoints>=20){player.genPoints-=20;player.items.meat+=2;log("Đổi 20 Gen -> 2 Thịt.","new");}else log("Cần 20 Gen.","danger"); updateUI(); }
+    function openEvo() { if(player.genPoints<50)return; let opts=[]; for(let i=0;i<3;i++)opts.push(generateSynergyTrait()); window.tempOpts=opts; document.getElementById("modal-title").innerText="TIẾN HÓA"; document.getElementById("modal-desc").innerText="Chọn gen (-50 Gen):"; document.getElementById("modal-body").innerHTML=opts.map((t,i)=>`<button class="evo-option" onclick="doEvolve(${i})"><strong>${t.name}</strong><br><small>${t.desc}</small>${t.passive?`<br><span style="color:#ffdd57">★ ${t.passive}</span>`:''}</button>`).join(""); document.getElementById("btn-close-modal").innerText="Hủy"; document.getElementById("btn-close-modal").onclick=closeModal; document.getElementById("modal-overlay").classList.remove("hidden"); }
+    function closeModal() { document.getElementById("modal-overlay").classList.add("hidden"); }
+    function doEvolve(i) { let t=window.tempOpts[i]; player.genPoints-=50; player.traits.push(t); if(t.type==="HP"){player.maxHp+=t.val;player.hp+=t.val;} if(t.type==="ATK")player.atk+=t.val; if(t.type==="DEF")player.def+=t.val; if(t.type==="SPD")player.spd+=t.val; if(t.type==="REGEN")player.regen+=t.val; log(`Tiến hóa: ${t.name}`,"new"); updateUI(); closeModal(); }
+
+    function showModal(title, msg, reload=false, customBody="") {
+        document.getElementById("modal-title").innerText = title;
+        document.getElementById("modal-desc").innerText = msg;
+        document.getElementById("modal-body").innerHTML = customBody;
+        document.getElementById("btn-close-modal").innerText = reload ? "Chơi lại" : "Đóng";
+        document.getElementById("btn-close-modal").onclick = reload ? () => location.reload() : closeModal;
+        document.getElementById("modal-overlay").classList.remove("hidden");
+    }
+
+    updateUI();
+
+    //đồng minh, thu phục, map
+</script>
+
+</body>
+</html>
