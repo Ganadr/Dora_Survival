@@ -284,17 +284,17 @@
         // elementName: invariant bắt buộc phải có để map màu/độ hiếm ổn định
         let elementName = "";
         let rare = 1;
-        // partName: dùng trực tiếp tên bộ phận (KHÔNG parse từ name để tránh lỗi bộ phận 2 chữ)
+        // partName: dùng trực tiếp tên bộ phận 
         let partName = "";
 
         if (type === "REGEN") {
             let val = 4;
-            let rareMod = rand(1, 3);
+            let rareMod = rand(1, 5);
             finalVal = val * rareMod;
             fullName = "Tế Bào Tái Sinh" + (rareMod > 1 ? ` Mk.${rareMod}` : "");
             desc = `Hồi ${finalVal} HP/lượt`;
             elementName = "REGEN";
-            rare = Math.min(3, Math.max(1, Math.round(finalVal/4)));
+            rare = Math.min(5, Math.max(1, Math.round(finalVal/4)));
             // REGEN gắn với slot "Tế Bào"
             partName = "Tế Bào";
         } else {
@@ -312,7 +312,7 @@
                 if (tierList.length === 0) tierList = TIERS_DB;
             }
             let prefix = pickRandom(tierList);
-            // Không suy ra element bằng cách cắt chuỗi từ name nữa (dễ sai khi name có suffix).
+            
             // Element luôn chính là tier.name (ví dụ: "Cường Hoá", "Hạt Nhân", "Vũ Trụ"...)
             elementName = prefix.name;
             rare = prefix.rare;
@@ -361,7 +361,7 @@
         if (!t) return t;
         let rare = 1;
         const elementName = t.element;
-        // Invariant: trait hợp lệ phải có element. Không tự đoán từ tên nữa để tránh sai khi name có suffix.
+       
         if (!elementName) {
             console.warn("Trait missing element (cannot normalize color reliably):", t);
             // Giữ màu mặc định để không phá UI, nhưng đây là dữ liệu lỗi.
@@ -374,7 +374,9 @@
         if (tier) {
             rare = tier.rare;
         } else if (t.type === "REGEN") {
-            rare = Math.min(3, Math.max(1, Math.round((t.val||4)/4)));
+            // REGEN: rare dựa trên "Mk" ban đầu (baseVal), không dựa trên val (tăng gần nhất) để tránh lệch khi up cấp random
+            const mkBase = Number(t.baseVal ?? t.val ?? 4);
+            rare = Math.min(5, Math.max(1, Math.round(mkBase/4)));
         }
         // Luôn cập nhật lại để đảm bảo màu đúng
         t.rare = rare;
@@ -388,7 +390,7 @@
     function traitTotalVal(t) {
         const total = Number(t?.totalVal);
         if (Number.isFinite(total)) return total;
-        // Back-compat: phiên bản cũ dùng val * level (val cố định theo trait)
+        
         const perLevel = Number(t?.val ?? 0);
         const lv = Number(t?.level ?? 1);
         return perLevel * lv;
@@ -542,7 +544,7 @@
             let count = rand(1, 3);
             for(let i=0; i<count; i++) {
                 let m = 1 + (player.days / 50);
-                let traits = []; let tc = rand(1, 2); for(let k=0; k<tc; k++) traits.push(generateSynergyTrait());
+                let traits = []; let tc = rand(1, 3); for(let k=0; k<tc; k++) traits.push(generateSynergyTrait());
                 let base = { hp: 40*m, maxHp: 40*m, atk: 10*m, def: 0, spd: 5 };
                 traits.forEach(t => { if(t.type==="HP"){base.hp+=t.val;base.maxHp+=t.val;} if(t.type==="ATK")base.atk+=t.val; if(t.type==="DEF")base.def+=t.val; if(t.type==="SPD")base.spd+=t.val; });
                 
@@ -931,9 +933,33 @@
             showModal("LỖI GEN", "Đặc tính được tạo ra bị thiếu element. Hãy thử bắn lại.", false);
             return;
         }
+        ensureTraitScalingFields(t);
         const existing = findTrait(t.part, t.element);
         if (existing) {
             ensureTraitScalingFields(existing);
+
+            // (B) REGEN: nếu gặp Mk cao hơn, nâng "mk nền" của trait hiện có
+            // - Cập nhật baseVal/name/desc theo Mk mới
+            // - Cộng phần chênh lệch cho toàn bộ level hiện tại để chỉ số phản ánh Mk mới ngay lập tức
+            if (existing.type === "REGEN") {
+                const newBase = Number(t.baseVal ?? t.val ?? 0);
+                const oldBase = Number(existing.baseVal ?? existing.val ?? 0);
+                if (newBase > oldBase) {
+                    const lvNow = Number(existing.level ?? 1);
+                    const diff = newBase - oldBase;
+                    const mkBonus = diff * lvNow;
+
+                    existing.baseVal = newBase;
+                    existing.name = t.name;
+                    existing.desc = t.desc;
+                    existing.totalVal = Number(existing.totalVal ?? traitTotalVal(existing)) + mkBonus;
+                    // cộng ngay vào chỉ số player (REGEN)
+                    applyTraitStats(existing, 1, mkBonus);
+                    // cập nhật màu/rare theo Mk nền mới
+                    normalizeTraitColor(existing);
+                }
+            }
+
             existing.level += 1;
             const inc = rollUpgradeIncrement(existing);
             existing.val = inc; // val giờ là "tăng gần nhất" (biến động theo lần up)
