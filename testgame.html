@@ -33,6 +33,7 @@
         #log-area { height: 200px; overflow-y: auto; font-size: 13px; color: #8b949e; border: 1px solid var(--border-color); padding: 10px; background: #000; }
         .log-new { color: var(--success-color); }
         .log-danger { color: var(--alert-color); }
+        .log-success { color: var(--success-color); }
         .log-boss { color: var(--rare); font-weight: bold; }
         
         .enemy-container { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; padding-bottom: 5px; }
@@ -62,7 +63,25 @@
         
         #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: var(--panel-bg); border: 2px solid var(--success-color); padding: 20px; width: 85%; max-width: 500px; text-align: center; max-height: 80vh; overflow-y: auto; }
-        .evo-option { display: block; width: 100%; margin: 10px 0; padding: 15px; border: 1px solid var(--success-color); background: #0d1117; color: var(--success-color); cursor: pointer; text-align: left; }
+        .evo-option { display: block; width: 100%; margin: 10px 0; padding: 15px; border: 1px solid var(--success-color); background: #0d1117; color: var(--success-color); cursor: pointer; text-align: left; border-radius: 6px; }
+        .evo-option[data-mode="replace"] { border: 2px dashed #ff7b72 !important; background: rgba(255, 123, 114, 0.12) !important; }
+
+        /* Mode badges: NEW / UPGRADE / REPLACE (giúp user nhận diện ngay) */
+        .trait-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            border: 1px solid rgba(255,255,255,0.12);
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .trait-badge-new { color: #3fb950; background: rgba(63,185,80,0.12); border-color: rgba(63,185,80,0.35); }
+        .trait-badge-upgrade { color: #f2cc60; background: rgba(242,204,96,0.10); border-color: rgba(242,204,96,0.35); }
+        .trait-badge-replace { color: #ff7b72; background: rgba(255,123,114,0.10); border-color: rgba(255,123,114,0.35); }
+        .evo-option[data-mode="replace"] { outline: 1px dashed rgba(255,123,114,0.55); }
     </style>
 </head>
 <body>
@@ -86,7 +105,7 @@
             
             <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
                 <small>Đặc tính:</small>
-                <button onclick="showTraits()" style="padding: 2px 8px; font-size: 11px; width: auto; background: #222; border: 1px solid #555;">👁️ Chi tiết</button>
+                <button data-ui="showTraits" style="padding: 2px 8px; font-size: 11px; width: auto; background: #222; border: 1px solid #555;">👁️ Chi tiết</button>
             </div>
             <div id="p-traits" style="margin-top: 5px;">Chưa có đặc tính</div>
         </div>
@@ -116,20 +135,21 @@
 
     <div class="box">
         <div id="mode-explore" class="action-grid">
-            <button onclick="explore()">📅 TIẾN TỚI 1 NGÀY (Thám hiểm)</button>
-            <button onclick="rest()">⛺ NGHỈ NGƠI (Hồi máu, Ăn thịt)</button>
-            <button onclick="useMedkit()">🧰 DÙNG THUỐC (Hồi máu nhanh)</button>
-            <button class="btn-gadget" onclick="useTablecloth()">🍽️ KHĂN TRẢI BÀN (Gen -> Thịt)</button>
-            <button onclick="openEvo()" id="btn-evo" style="grid-column: span 2; border-color: #3fb950; color: #3fb950;">🧬 DÙNG SÚNG TIẾN HÓA (50 Gen)</button>
+            <button data-act="explore">📅 TIẾN TỚI 1 NGÀY (Thám hiểm)</button>
+            <button data-act="rest">⛺ NGHỈ NGƠI (Hồi máu, Ăn thịt)</button>
+            <button data-act="useMedkit">🧰 DÙNG THUỐC (Hồi máu nhanh)</button>
+            <button class="btn-gadget" data-act="useTablecloth">🍽️ KHĂN TRẢI BÀN (Gen -> Thịt)</button>
+            <button data-act="openEvo" id="btn-evo" style="grid-column: span 2; border-color: #3fb950; color: #3fb950;">🧬 DÙNG SÚNG TIẾN HÓA (50 Gen)</button>
         </div>
 
         <div id="mode-combat" class="action-grid hidden">
-            <button onclick="performAction('basic')">⚔️ TẤN CÔNG THƯỜNG</button>
-            <button class="btn-gadget" onclick="performAction('air_cannon')">💥 Đại Bác Không Khí(DMG Cao)</button>
-            <button class="btn-gadget" onclick="performAction('dictator_switch')">☠️ Công Tắc Độc Tài(Xóa Sổ - No Loot)</button>
-            <button class="btn-gadget" onclick="performAction('evo_gun_enemy')">🔫 Súng Tiến Hóa (Debuff/Xóa trait)</button>
-            <button class="btn-gadget" onclick="performAction('counter_mantle')">🛑 Khăn Choàng A-lê-hấp (Chặn)</button>
-            <button class="btn-gadget" onclick="performAction('anywhere_door')">🚪 Cửa Thần Kỳ (Chạy)</button>
+            <button data-perform="basic">⚔️ TẤN CÔNG THƯỜNG</button>
+            <button class="btn-gadget" data-perform="air_cannon">💥 Đại Bác Không Khí(DMG Cao)</button>
+            <button class="btn-gadget" data-perform="dictator_switch">☠️ Công Tắc Độc Tài(Xóa Sổ - No Loot)</button>
+            <button class="btn-gadget" data-perform="evo_gun_enemy">🔫 Súng Tiến Hóa (Debuff/Xóa trait)</button>
+            <button class="btn-gadget" data-perform="counter_mantle">🛑 Khăn Choàng A-lê-hấp (Chặn)</button>
+            <button class="btn-gadget" data-perform="anywhere_door">🚪 Cửa Thần Kỳ (Chạy)</button>
+            <button data-perform="use_medkit">🧰 DÙNG THUỐC </button>
         </div>
     </div>
 </div>
@@ -139,7 +159,7 @@
         <h3 id="modal-title" style="color: #3fb950;">THÔNG BÁO</h3>
         <p id="modal-desc" style="color: #8b949e; font-size: 13px;">Nội dung</p>
         <div id="modal-body"></div>
-        <button onclick="closeModal()" id="btn-close-modal" style="margin-top:20px; width:100%;">Đóng</button>
+        <button id="btn-close-modal" style="margin-top:20px; width:100%;">Đóng</button>
     </div>
 </div>
 
@@ -178,6 +198,7 @@
     const ENTITIES = ["Zombie", "Chuột", "Gián", "Sói", "Người Máy", "Cây Đột Biến", "Thằn Lằn"];
     const BOSS_NAMES = ["Khổng Lồ Một Mắt", "Bạch Tuộc Không Gian", "Máy Chém Rỉ Sét", "Sói Alpha Đột Biến"];
     const FINAL_BOSS = "VUA HỦY DIỆT";
+    const BODY_PARTS = ["Vuốt","Nanh","Gai","Đuôi","Sừng","Xúc Tu","Da","Vỏ","Xương","Vảy","Tim","Máu","Tế Bào","Cánh","Chân","Mắt"];
 
     // --- CẬP NHẬT: Thêm Boss vào Loot Table để thưởng to hơn ---
     const LOOT_TABLE = {
@@ -200,38 +221,71 @@
     let player = {
         hp: 100, maxHp: 100, atk: 15, def: 5, spd: 10, regen: 0, 
         genPoints: 0, items: { meat: 3, medkit: 1 }, 
-        traits: [], days: 1, parts: 0
+        traits: [], days: 1, parts: 0, slots: {}
     };
+    BODY_PARTS.forEach(p => player.slots[p] = false);
 
     let currentEnemies = [];
     let isCountering = false;
     let isBossFight = false;
 
     /* --- UTILITIES --- */
+    const $ = (id) => document.getElementById(id);
+    const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+    const LOG_CLASS = { danger: "log-danger", new: "log-new", success: "log-success", boss: "log-boss", info: "log-info" };
+    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
     function log(msg, type = "info") {
-        const div = document.getElementById("log-area");
-        div.innerHTML += `<div class="${type==="danger"?"log-danger":type==="new"?"log-new":type==="boss"?"log-boss":"log-info"}">> ${msg}</div>`;
+        const div = $("log-area");
+        div.insertAdjacentHTML("beforeend", `<div class="${LOG_CLASS[type] || LOG_CLASS.info}">> ${msg}</div>`);
         div.scrollTop = div.scrollHeight;
     }
-    function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-    function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function qualityColor(q){ if(q>=5) return "#ff00aa"; if(q===4) return "#ffdd57"; if(q===3) return "#a371f7"; if(q===2) return "#58a6ff"; return "#3fb950"; }
     
     function toggleInput(disabled) {
-        const buttons = document.querySelectorAll('#mode-combat button');
-        buttons.forEach(btn => {
+        $$('#mode-combat button').forEach(btn => {
             btn.disabled = disabled;
             btn.style.opacity = disabled ? "0.5" : "1";
             btn.style.cursor = disabled ? "not-allowed" : "pointer";
         });
     }
 
+    function setCombatMode(on) {
+        $("mode-explore").classList.toggle("hidden", on);
+        $("mode-combat").classList.toggle("hidden", !on);
+        $("combat-area").classList.toggle("hidden", !on);
+    }
+
+    // 1 listener cho toàn bộ UI button (gọn hơn onclick rải rác)
+    document.addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (!btn) return;
+        if (btn.disabled) return;
+
+        if (btn.dataset.ui === "showTraits") return showTraits();
+
+        const actMap = { explore, rest, useMedkit, useTablecloth, openEvo };
+        const act = btn.dataset.act;
+        if (act && actMap[act]) return actMap[act]();
+
+        const perf = btn.dataset.perform;
+        if (perf) return performAction(perf);
+    });
+
     /* --- TRAIT GENERATOR --- */
     function generateSynergyTrait(forceTier = null) {
-        let r = Math.random();
-        let type = "ATK";
-        if (r < 0.3) type = "ATK"; else if (r < 0.6) type = "DEF"; else if (r < 0.85) type = "HP"; else if (r < 0.95) type = "SPD"; else type = "REGEN";
+        const TYPES = ["ATK","DEF","HP","SPD","REGEN"]; 
+        let type = TYPES[rand(0, TYPES.length-1)];
 
         let desc = "", finalVal = 0, passive = null, fullName = "";
+        // elementName: invariant bắt buộc phải có để map màu/độ hiếm ổn định
+        let elementName = "";
+        let rare = 1;
+        // partName: dùng trực tiếp tên bộ phận (KHÔNG parse từ name để tránh lỗi bộ phận 2 chữ)
+        let partName = "";
 
         if (type === "REGEN") {
             let val = 4;
@@ -239,16 +293,29 @@
             finalVal = val * rareMod;
             fullName = "Tế Bào Tái Sinh" + (rareMod > 1 ? ` Mk.${rareMod}` : "");
             desc = `Hồi ${finalVal} HP/lượt`;
+            elementName = "REGEN";
+            rare = Math.min(3, Math.max(1, Math.round(finalVal/4)));
+            // REGEN gắn với slot "Tế Bào"
+            partName = "Tế Bào";
         } else {
             let partList = PARTS_DB[type];
             let part = partList[Math.floor(Math.random() * partList.length)];
+            partName = part.name;
 
-            let tierList = forceTier ? [forceTier] : TIERS_DB;
-            if (!forceTier) {
-                let rt = Math.random();
-                tierList = TIERS_DB.filter(t => t.rare <= (rt < 0.6 ? 1 : rt < 0.9 ? 2 : rt < 0.98 ? 3 : 5));
+            let tierList;
+            if (forceTier) {
+                tierList = [forceTier];
+            } else {
+                const rares = [1,2,3,4,5];
+                const chosenRare = rares[rand(0, rares.length-1)];
+                tierList = TIERS_DB.filter(t => t.rare === chosenRare);
+                if (tierList.length === 0) tierList = TIERS_DB;
             }
             let prefix = pickRandom(tierList);
+            // Không suy ra element bằng cách cắt chuỗi từ name nữa (dễ sai khi name có suffix).
+            // Element luôn chính là tier.name (ví dụ: "Cường Hoá", "Hạt Nhân", "Vũ Trụ"...)
+            elementName = prefix.name;
+            rare = prefix.rare;
 
             let baseVal = (type==="HP"?20 : type==="ATK"?8 : 5);
             
@@ -275,32 +342,153 @@
             desc += passiveDesc;
         }
 
-        return { name: fullName, type: type, val: finalVal, desc: desc, passive: passive };
+        // elementName phải luôn có; nếu không có thì coi là lỗi dữ liệu (không chấp nhận trait "mù element")
+        if (!elementName) {
+            throw new Error(`Trait missing element: name="${fullName}", type="${type}"`);
+        }
+        let color = qualityColor(rare);
+        // baseVal: giá trị gốc (Lv.1) dùng để roll upgrade; val: tăng gần nhất; totalVal: tổng cộng dồn thực tế
+        return { name: fullName, type: type, baseVal: finalVal, val: finalVal, totalVal: finalVal, desc: desc, passive: passive, part: partName, element: elementName, level: 1, state: "ACTIVE", rare: rare, color: color };
+    }
+
+    function isSlotOccupied(part) {
+        return player.traits.some(t => t.part === part && t.state === "ACTIVE");
+    }
+    function findTrait(part, element) {
+        return player.traits.find(t => t.part === part && t.element === element);
+    }
+    function normalizeTraitColor(t) {
+        if (!t) return t;
+        let rare = 1;
+        const elementName = t.element;
+        // Invariant: trait hợp lệ phải có element. Không tự đoán từ tên nữa để tránh sai khi name có suffix.
+        if (!elementName) {
+            console.warn("Trait missing element (cannot normalize color reliably):", t);
+            // Giữ màu mặc định để không phá UI, nhưng đây là dữ liệu lỗi.
+            t.rare = 1;
+            t.color = qualityColor(1);
+            return t;
+        }
+        // Tìm tier theo name hoặc element
+        let tier = TIERS_DB.find(x => x.name === elementName || x.element === elementName);
+        if (tier) {
+            rare = tier.rare;
+        } else if (t.type === "REGEN") {
+            rare = Math.min(3, Math.max(1, Math.round((t.val||4)/4)));
+        }
+        // Luôn cập nhật lại để đảm bảo màu đúng
+        t.rare = rare;
+        t.color = qualityColor(rare);
+        return t;
+    }
+
+    const normTrait = (t) => ensureTraitScalingFields(normalizeTraitColor(t));
+    const traitTagsHTML = (traits) => (traits?.length ? traits.map(normTrait).map(traitTagHTML).join("") : "");
+
+    function traitTotalVal(t) {
+        const total = Number(t?.totalVal);
+        if (Number.isFinite(total)) return total;
+        // Back-compat: phiên bản cũ dùng val * level (val cố định theo trait)
+        const perLevel = Number(t?.val ?? 0);
+        const lv = Number(t?.level ?? 1);
+        return perLevel * lv;
+    }
+    function traitText(t) {
+        // Chuẩn hoá text hiển thị của trait ở 1 chỗ duy nhất (gọn và tránh gọi lặp)
+        if (!t) return { base: "", inc: "", total: "", title: "" };
+        ensureTraitScalingFields(t);
+        const lv = Number(t.level ?? 1);
+        const baseVal = Number(t.baseVal ?? 0);
+        const incVal = Number(t.val ?? 0); // tăng gần nhất
+        const totalVal = Number(traitTotalVal(t) ?? 0);
+
+        const fmt = (v) => {
+            if (!v) return "";
+            if (t.type === "REGEN") return `Hồi ${v} HP/lượt`;
+            if (t.type === "HP") return `HP +${v}`;
+            return `${t.type} +${v}`;
+        };
+
+        const base = baseVal ? `Gốc: ${fmt(baseVal)}` : "";
+        const inc = incVal ? `Tăng gần nhất (Lv.${lv}): ${fmt(incVal)}` : "";
+        const total = totalVal ? `Tổng (Lv.${lv}): ${fmt(totalVal)}` : "";
+
+        const lines = [];
+        if (t.desc) lines.push(String(t.desc));
+        if (base) lines.push(base);
+        if (inc) lines.push(inc);
+        if (total) lines.push(total);
+        return { base, inc, total, title: lines.join("&#10;") };
+    }
+
+    function ensureTraitScalingFields(t) {
+        if (!t) return t;
+        // baseVal: giá trị gốc để roll upgrade quanh nó
+        if (t.baseVal === undefined || t.baseVal === null) {
+            t.baseVal = Number(t.val ?? 0);
+        }
+        // totalVal: tổng cộng dồn thực tế (để remove/hiển thị đúng)
+        if (t.totalVal === undefined || t.totalVal === null) {
+            const lv = Number(t.level ?? 1);
+            const per = Number(t.val ?? 0);
+            // Back-compat: trước đây mỗi cấp cộng đúng per (không random)
+            t.totalVal = per * lv;
+        }
+        return t;
+    }
+
+    function rollUpgradeIncrement(t) {
+        // Roll tăng chỉ số cho lần nâng cấp mới quanh baseVal.
+        // Có thể chỉnh biên độ tại đây để game "gắt" hơn / ổn định hơn.
+        ensureTraitScalingFields(t);
+        const base = Math.max(1, Number(t.baseVal ?? 1));
+        const minF = 0.75;
+        const maxF = 1.35;
+        const f = minF + Math.random() * (maxF - minF);
+        let inc = Math.max(1, Math.round(base * f));
+        // HP thường to hơn, tránh lên quá nhỏ gây cảm giác "fail roll"
+        if (t.type === "HP") inc = Math.max(3, inc);
+        return inc;
+    }
+
+    function traitTagHTML(t, extra = {}) {
+        const title = (extra.title ?? traitText(t).title ?? "").replaceAll('"', "&quot;");
+        const name = (extra.name ?? t.name ?? "").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+        const color = t.color || '#3fb950';
+        const bg = `${color}33`;
+        return `<span class="trait-tag" style="border-color: ${color}; background: ${bg}; color: #ffffff;" title="${title}">${name}</span>`;
+    }
+    function applyTraitStats(t, factor, deltaOverride = null) {
+        const delta = (deltaOverride === null || deltaOverride === undefined)
+            ? (Number(t?.val ?? 0) * factor)
+            : (Number(deltaOverride) * factor);
+        if (t.type === "HP") { player.maxHp += delta; player.hp = Math.min(player.hp + delta, player.maxHp); }
+        if (t.type === "ATK") player.atk += delta;
+        if (t.type === "DEF") player.def += delta;
+        if (t.type === "SPD") player.spd += delta;
+        if (t.type === "REGEN") player.regen += delta;
     }
 
     /* --- UI UPDATE --- */
     function updateUI() {
-        document.getElementById("p-hp").innerText = `${Math.max(0, player.hp)}/${player.maxHp}`;
-        document.getElementById("p-atk").innerText = player.atk;
-        document.getElementById("p-def").innerText = player.def;
-        document.getElementById("p-spd").innerText = player.spd;
-        document.getElementById("p-gen").innerText = player.genPoints;
-        document.getElementById("p-inventory").innerText = `Thịt: ${player.items.meat}, Thuốc: ${player.items.medkit}`;
+        $("p-hp").innerText = `${Math.max(0, player.hp)}/${player.maxHp}`;
+        $("p-atk").innerText = player.atk;
+        $("p-def").innerText = player.def;
+        $("p-spd").innerText = player.spd;
+        $("p-gen").innerText = player.genPoints;
+        $("p-inventory").innerText = `Thịt: ${player.items.meat}, Thuốc: ${player.items.medkit}`;
         
-        document.getElementById("p-traits").innerHTML = player.traits.map(t => {
-            let style = t.passive ? 'border-color: #ffdd57; color: #ffdd57;' : '';
-            return `<span class="trait-tag" style="${style}" title="${t.desc}">${t.name}</span>`
-        }).join("") || "Không";
+        $("p-traits").innerHTML = traitTagsHTML(player.traits) || "Không";
         
-        document.getElementById("g-day").innerText = player.days;
-        document.getElementById("g-parts").innerText = `${player.parts}/5`;
-        document.getElementById("quest-bar").style.width = `${(player.parts/5)*100}%`;
+        $("g-day").innerText = player.days;
+        $("g-parts").innerText = `${player.parts}/5`;
+        $("quest-bar").style.width = `${(player.parts/5)*100}%`;
         
         let nextBossDay = Math.ceil(player.days / 10) * 10;
         if (player.days % 10 === 0 && !isBossFight) nextBossDay += 10; 
-        document.getElementById("next-event").innerText = `Mục tiêu kế tiếp: Ngày ${nextBossDay} (Còn ${nextBossDay - player.days} ngày)`;
+        $("next-event").innerText = `Mục tiêu kế tiếp: Ngày ${nextBossDay} (Còn ${nextBossDay - player.days} ngày)`;
 
-        document.getElementById("btn-evo").disabled = player.genPoints < 50;
+        $("btn-evo").disabled = player.genPoints < 50;
 
         if (player.hp <= 0) {
             toggleInput(true); 
@@ -311,9 +499,16 @@
     function showTraits() {
         if (player.traits.length === 0) { showModal("HỒ SƠ GEN", "Chưa có đặc tính."); return; }
         let html = `<div style="text-align: left;">`;
-        player.traits.forEach(t => {
-            let color = t.passive ? '#ffdd57' : '#3fb950';
-            html += `<div style="border:1px solid ${color};padding:8px;margin-bottom:5px;border-radius:4px;"><div style="color:${color};font-weight:bold">${t.name}</div><div style="font-size:12px;color:#ccc">${t.desc}</div></div>`;
+        player.traits.map(normTrait).forEach((t) => {
+            let st = t.state === "ACTIVE" ? "Hiện" : "Ẩn";
+            const tt = traitText(t);
+            html += `<div style="border:1px solid var(--border-color);padding:8px;margin-bottom:6px;border-radius:6px;background:#0b0f14;">
+                <div style="color:#fff;font-weight:bold">${traitTagHTML(t)} [${t.part}] Lv.${t.level} (${st})</div>
+                <div style="font-size:12px;color:#ccc">${t.desc || ""}</div>
+                ${tt.base ? `<div style="font-size:12px;color:#8b949e;margin-top:4px;">${tt.base}</div>` : ""}
+                ${tt.inc ? `<div style="font-size:12px;color:#8b949e;margin-top:4px;">${tt.inc}</div>` : ""}
+                ${tt.total ? `<div style="font-size:12px;color:#fff;margin-top:2px;"><strong>${tt.total}</strong></div>` : ""}
+            </div>`;
         });
         html += `</div>`;
         showModal(`HỒ SƠ GEN (Tổng: ${player.traits.length})`, "", false, html);
@@ -356,63 +551,156 @@
             }
             log(`Phát hiện ${count} kẻ địch chặn đường.`);
         }
-        document.getElementById("mode-explore").classList.add("hidden"); document.getElementById("mode-combat").classList.remove("hidden"); document.getElementById("combat-area").classList.remove("hidden");
+        setCombatMode(true);
         toggleInput(false); renderEnemies();
     }
     function renderEnemies() {
-        const div = document.getElementById("e-list"); div.innerHTML = "";
+        const div = $("e-list"); div.innerHTML = "";
         currentEnemies.forEach(e => {
             let hpPct = (e.stats.hp / e.stats.maxHp) * 100;
             let el = document.createElement("div");
             el.className = `enemy-card ${e.isBoss ? 'boss' : ''} ${e.alive ? '' : 'dead'} ${e.selected ? 'selected' : ''}`;
             el.onclick = () => { if(e.alive) { currentEnemies.forEach(x => x.selected = false); e.selected = true; renderEnemies(); } };
-            el.innerHTML = `<span class="enemy-name">${e.name}</span><div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:${hpPct}%"></div></div><small>HP: ${Math.ceil(e.stats.hp)} | ATK: ${Math.ceil(e.stats.atk)}</small><br><div style="margin-top:4px;">${e.traits.map(t=>`<span class="trait-tag">${t.name}</span>`).join("")}</div>`;
+            el.innerHTML = `<span class="enemy-name">${e.name}</span><div class="enemy-hp-bar"><div class="enemy-hp-fill" style="width:${hpPct}%"></div></div><small>HP: ${Math.ceil(e.stats.hp)} | ATK: ${Math.ceil(e.stats.atk)}</small><br><div style="margin-top:4px;">${traitTagsHTML(e.traits)}</div>`;
             div.appendChild(el);
         });
     }
 
-    function performAction(type) {
+    function openCombatEvoGunChoice(targetId) {
+        const target = currentEnemies.find(x => x.id === targetId);
+        if (!target || !target.alive) {
+            log("Mục tiêu không hợp lệ.", "danger");
+            toggleInput(false);
+            return;
+        }
+        const body = `
+            <div style="text-align:left;">
+                <div style="color:#8b949e;font-size:12px;margin-bottom:10px;">Chọn chế độ bắn lên <strong style="color:#fff">${target.name}</strong>:</div>
+                <button class="evo-option" data-cgev="${targetId}" data-mode="debuff">🧪 Thoái hóa (Giảm chỉ số)</button>
+                <button class="evo-option" data-cgev="${targetId}" data-mode="cleanse">🧬 Tẩy Gen (Xóa 1 đặc tính của địch)</button>
+                <div style="margin-top:10px;color:#8b949e;font-size:11px;">Hủy sẽ không mất lượt.</div>
+            </div>
+        `;
+        // Khi mở modal chọn, tạm thời không cho thao tác khác; nếu hủy thì trả lại lượt
+        showModal("SÚNG TIẾN HÓA", "", false, body);
+        const btn = $("btn-close-modal");
+        if (btn) {
+            btn.innerText = "Hủy";
+            btn.onclick = () => { closeModal(); toggleInput(false); };
+        }
+    }
+
+    function combatEvoGunChoose(targetId, mode) {
+        const t = currentEnemies.find(x => x.id === targetId);
+        if (!t || !t.alive) {
+            closeModal();
+            log("Mục tiêu không còn sống.", "danger");
+            toggleInput(false);
+            return;
+        }
+
+        closeModal();
+
+        if (mode === "debuff") {
+            t.stats.atk = Math.floor(t.stats.atk * 0.6);
+            t.stats.def = Math.floor(t.stats.def * 0.6);
+            t.stats.hp -= 15;
+            log(`Thoái hóa ${t.name}: Chỉ số giảm mạnh!`);
+        } else if (mode === "cleanse") {
+            if (t.traits.length > 0) {
+                let ridx = rand(0, t.traits.length - 1);
+                let removed = t.traits.splice(ridx, 1)[0];
+                const removedTotal = Number(removed?.totalVal ?? removed?.val ?? 0);
+                if (removed.type === "ATK") t.stats.atk -= removedTotal;
+                if (removed.type === "DEF") t.stats.def -= removedTotal;
+                if (removed.type === "HP") {
+                    t.stats.maxHp -= removedTotal;
+                    t.stats.hp = Math.min(t.stats.hp, t.stats.maxHp);
+                }
+                if (removed.type === "SPD") t.stats.spd -= removedTotal;
+                log(`Tẩy Gen ${t.name}: Mất đặc tính [${removed.name}]!`, "success");
+            } else {
+                log(`${t.name} không còn Gen nào để xóa!`, "danger");
+            }
+        } else {
+            // mode không hợp lệ -> không mất lượt
+            log("Chế độ không hợp lệ.", "danger");
+            toggleInput(false);
+            return;
+        }
+
+        // Kết thúc lượt của người chơi
+        currentEnemies.forEach(e => { if (e.stats.hp <= 0) e.alive = false; });
+        renderEnemies();
+        updateUI();
+        if (currentEnemies.every(e => !e.alive)) endCombat(true);
+        else setTimeout(enemiesTurn, 500);
+    }
+
+    const ACTIONS = {
+        counter_mantle: {
+            needsTarget: false,
+            run: () => { isCountering = true; log("Tung Khăn Choàng A-lê-hấp!", "info"); setTimeout(enemiesTurn, 500); return { handled: true }; }
+        },
+        use_medkit: {
+            needsTarget: false,
+            run: () => {
+                if (player.items.medkit <= 0) { log("Hết thuốc! Không thể dùng trong chiến đấu.", "danger"); toggleInput(false); return { handled: true }; }
+                player.items.medkit--;
+                const before = player.hp;
+                player.hp = Math.min(player.maxHp, player.hp + 70);
+                log(`Dùng thuốc trong chiến đấu (+${player.hp - before} HP).`, "new");
+                updateUI();
+                setTimeout(enemiesTurn, 500);
+                return { handled: true };
+            }
+        },
+        anywhere_door: { needsTarget: false, run: () => { log("Mở Cửa Thần Kỳ... Chạy thoát thành công!", "info"); endCombat(false); return { handled: true }; } },
+        evo_gun_enemy: { needsTarget: true, run: (t) => { openCombatEvoGunChoice(t.id); return { handled: true }; } },
+        dictator_switch: {
+            needsTarget: true,
+            run: (t) => {
+                if (t.isBoss) { log("Boss miễn nhiễm!", "danger"); return { handled: true }; }
+                if (!confirm("Xóa sổ (Không Loot)?")) { toggleInput(false); return { handled: true }; }
+                t.stats.hp = 0; t.noLoot = true; log(`${t.name} bị xóa sổ.`, "danger");
+            }
+        },
+        air_cannon: { needsTarget: true, run: (t) => { const dmg = Math.max(1, player.atk - t.stats.def); t.stats.hp -= (Math.floor(dmg * 2.5) + 20); log(`Đại bác bắn ${t.name}: ST lớn!`); } },
+        basic: {
+            needsTarget: true,
+            run: (t) => {
+                let dmg = Math.max(1, player.atk - t.stats.def);
+                if (player.traits.some(x => x.passive === "PIERCE")) { dmg = Math.max(1, player.atk - (t.stats.def / 2)); log("Xuyên Giáp!", "success"); }
+                if (player.traits.some(x => x.passive === "BURN")) { dmg += 5; log("Thiêu đốt +5 DMG!", "danger"); }
+                if (player.traits.some(x => x.passive === "LIFESTEAL")) { let h = Math.ceil(dmg * 0.2); player.hp = Math.min(player.maxHp, player.hp + h); log(`Hút ${h} HP!`, "new"); }
+                t.stats.hp -= dmg; log(`Tấn công ${t.name}: ${Math.floor(dmg)} ST.`);
+            }
+        }
+    };
+
+    function resolveEndOfPlayerTurn() {
+        currentEnemies.forEach(e => { if (e.stats.hp <= 0) e.alive = false; });
+        renderEnemies();
+        if (currentEnemies.every(e => !e.alive)) endCombat(true);
+        else setTimeout(enemiesTurn, 500);
+    }
+
+    function getSelectedTarget() {
         let targets = currentEnemies.filter(e => e.selected && e.alive);
         if (targets.length === 0 && currentEnemies.filter(e => e.alive).length === 1) targets = [currentEnemies.find(e => e.alive)];
-        if (type !== 'anywhere_door' && type !== 'counter_mantle' && targets.length === 0) { log("Hãy chọn mục tiêu!", "danger"); return; }
+        return targets[0] || null;
+    }
+
+    function performAction(type) {
+        const action = ACTIONS[type];
+        if (!action) { log("Hành động không hợp lệ!", "danger"); return; }
+        const target = getSelectedTarget();
+        if (action.needsTarget && !target) { log("Hãy chọn mục tiêu!", "danger"); return; }
+
         toggleInput(true);
-
-        if (type === 'counter_mantle') { isCountering = true; log("Tung Khăn Choàng A-lê-hấp!", "info"); setTimeout(enemiesTurn, 500); return; }
-        
-        if (type === 'anywhere_door') { 
-            log("Mở Cửa Thần Kỳ... Chạy thoát thành công!", "info"); 
-            endCombat(false); 
-            return; 
-        }
-
-        let t = targets[0], dmg = Math.max(1, player.atk - t.stats.def), turnEnded = true;
-        switch(type) {
-            case 'basic':
-                if (player.traits.some(x => x.passive === "PIERCE")) { dmg = Math.max(1, player.atk - (t.stats.def/2)); log("Xuyên Giáp!", "success"); }
-                if (player.traits.some(x => x.passive === "BURN")) { dmg += 5; log("Thiêu đốt +5 DMG!", "danger"); }
-                if (player.traits.some(x => x.passive === "LIFESTEAL")) { let h = Math.ceil(dmg*0.2); player.hp = Math.min(player.maxHp, player.hp+h); log(`Hút ${h} HP!`, "new"); }
-                t.stats.hp -= dmg; log(`Tấn công ${t.name}: ${Math.floor(dmg)} ST.`); break;
-            case 'air_cannon': t.stats.hp -= (Math.floor(dmg*2.5)+20); log(`Đại bác bắn ${t.name}: ST lớn!`); break;
-            case 'dictator_switch': if(t.isBoss)log("Boss miễn nhiễm!","danger"); else if(confirm("Xóa sổ (Không Loot)?")){t.stats.hp=0;t.noLoot=true;log(`${t.name} bị xóa sổ.`,"danger");}else{turnEnded=false;toggleInput(false);} break;
-            case 'evo_gun_enemy': 
-                let mode = prompt("SÚNG TIẾN HÓA:\n1. Thoái hóa (Giảm chỉ số)\n2. Tẩy Gen (Xóa 1 đặc tính của địch)", "1");
-                if (mode === "1") {
-                    t.stats.atk = Math.floor(t.stats.atk * 0.6); t.stats.def = Math.floor(t.stats.def * 0.6); t.stats.hp -= 15;
-                    log(`Thoái hóa ${t.name}: Chỉ số giảm mạnh!`);
-                } else if (mode === "2") {
-                    if (t.traits.length > 0) {
-                        let ridx = rand(0, t.traits.length-1);
-                        let removed = t.traits.splice(ridx, 1)[0];
-                        if(removed.type==="ATK") t.stats.atk-=removed.val;
-                        if(removed.type==="DEF") t.stats.def-=removed.val;
-                        if(removed.type==="HP"){t.stats.maxHp-=removed.val; t.stats.hp=Math.min(t.stats.hp, t.stats.maxHp);}
-                        if(removed.type==="SPD") t.stats.spd-=removed.val;
-                        log(`Tẩy Gen ${t.name}: Mất đặc tính [${removed.name}]!`, "success");
-                    } else log(`${t.name} không còn Gen nào để xóa!`, "danger");
-                } else { turnEnded = false; toggleInput(false); }
-                break;
-        }
-        if (turnEnded) { currentEnemies.forEach(e => { if(e.stats.hp<=0) e.alive=false; }); renderEnemies(); if(currentEnemies.every(e=>!e.alive)) endCombat(true); else setTimeout(enemiesTurn, 500); }
+        const res = action.run(target);
+        if (res?.handled) return;
+        resolveEndOfPlayerTurn();
     }
 
     function enemiesTurn() {
@@ -443,7 +731,7 @@
 
     function endCombat(win) {
         toggleInput(false);
-        if(!win) { document.getElementById("mode-explore").classList.remove("hidden"); document.getElementById("mode-combat").classList.add("hidden"); document.getElementById("combat-area").classList.add("hidden"); return; }
+        if(!win) { setCombatMode(false); return; }
         
         let totalGen = 0, totalMeat = 0, totalMed = 0;
         let droppedPart = false;
@@ -489,28 +777,236 @@
             } 
         }
         if (isBossFight) player.days++;
-        document.getElementById("mode-explore").classList.remove("hidden"); document.getElementById("mode-combat").classList.add("hidden"); document.getElementById("combat-area").classList.add("hidden"); updateUI();
+        setCombatMode(false);
+        updateUI();
     }
 
     function rest() { if(player.items.meat>0){player.items.meat--;player.hp=Math.min(player.maxHp,player.hp+40);log("Ăn thịt (+40 HP).","new");}else log("Hết thịt!","danger"); updateUI(); }
     function useMedkit() { if(player.items.medkit>0){player.items.medkit--;player.hp=Math.min(player.maxHp,player.hp+70);log("Dùng thuốc (+70 HP).","new");}else log("Hết thuốc!","danger"); updateUI(); }
     function useTablecloth() { if(player.genPoints>=20){player.genPoints-=20;player.items.meat+=2;log("Đổi 20 Gen -> 2 Thịt.","new");}else log("Cần 20 Gen.","danger"); updateUI(); }
-    function openEvo() { if(player.genPoints<50)return; let opts=[]; for(let i=0;i<3;i++)opts.push(generateSynergyTrait()); window.tempOpts=opts; document.getElementById("modal-title").innerText="TIẾN HÓA"; document.getElementById("modal-desc").innerText="Chọn gen (-50 Gen):"; document.getElementById("modal-body").innerHTML=opts.map((t,i)=>`<button class="evo-option" onclick="doEvolve(${i})"><strong>${t.name}</strong><br><small>${t.desc}</small>${t.passive?`<br><span style="color:#ffdd57">★ ${t.passive}</span>`:''}</button>`).join(""); document.getElementById("btn-close-modal").innerText="Hủy"; document.getElementById("btn-close-modal").onclick=closeModal; document.getElementById("modal-overlay").classList.remove("hidden"); }
-    function closeModal() { document.getElementById("modal-overlay").classList.add("hidden"); }
-    function doEvolve(i) { let t=window.tempOpts[i]; player.genPoints-=50; player.traits.push(t); if(t.type==="HP"){player.maxHp+=t.val;player.hp+=t.val;} if(t.type==="ATK")player.atk+=t.val; if(t.type==="DEF")player.def+=t.val; if(t.type==="SPD")player.spd+=t.val; if(t.type==="REGEN")player.regen+=t.val; log(`Tiến hóa: ${t.name}`,"new"); updateUI(); closeModal(); }
+    function openEvo() {
+        $("modal-title").innerText="SÚNG TIẾN HÓA";
+        $("modal-desc").innerText="";
+        window.gunRolled = false;
+        window.tempOpts = undefined;
+        const tabHtml = `
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <button id="btn-evo-gun" class="evo-option" data-evo-tab="gun">🔫 Bắn Gen (-50 Gen)</button>
+                <button id="btn-surgery" class="evo-option" data-evo-tab="surgery">🧪 Thoái Hoá (Tiêu Trừ Đặc Tính)</button>
+            </div>
+            <div id="evo-content"></div>
+        `;
+        $("modal-body").innerHTML = tabHtml;
+        $("btn-close-modal").innerText="Đóng";
+        $("btn-close-modal").onclick=closeModal;
+        $("modal-overlay").classList.remove("hidden");
+        $("btn-evo-gun").disabled = false;
+        const sbtn = $("btn-surgery"); 
+        if (sbtn) sbtn.disabled = false;
+    }
+    function renderGunOptions(opts) {
+        const currentTraitsSection = (() => {
+            const traits = (player.traits || []).map(normTrait);
+            if (!traits.length) {
+                return `<details style="margin-bottom:10px;border:1px solid var(--border-color);border-radius:8px;background:#0b0f14;padding:10px;">
+                    <summary style="cursor:pointer;color:#c9d1d9;font-weight:800;">🧬 Gen hiện có (0)</summary>
+                    <div style="margin-top:8px;color:#8b949e;font-size:12px;">Chưa có đặc tính nào.</div>
+                </details>`;
+            }
+            const rows = traits.map(t => {
+                const st = t.state === "ACTIVE" ? "Hiện" : (t.state || "Ẩn");
+                const tt = traitText(t);
+                return `<div style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between;border-top:1px dashed #30363d;padding:8px 0;">
+                    <div style="min-width:0;">
+                        <div style="color:#fff;font-weight:700;line-height:1.2;word-break:break-word;">${traitTagHTML(t)} <span style="color:#8b949e;font-size:12px;">[${t.part}] Lv.${t.level} (${st})</span></div>
+                        <div style="margin-top:4px;color:#8b949e;font-size:12px;">${tt.base || ""}${tt.base && tt.inc ? " • " : ""}${tt.inc || ""}</div>
+                        ${tt.total ? `<div style="margin-top:2px;color:#fff;font-size:12px;"><strong>${tt.total}</strong></div>` : ""}
+                    </div>
+                </div>`;
+            }).join("");
+            return `<details style="margin-bottom:10px;border:1px solid var(--border-color);border-radius:8px;background:#0b0f14;padding:10px;">
+                <summary style="cursor:pointer;color:#c9d1d9;font-weight:800;">🧬 Gen hiện có (${traits.length})</summary>
+                <div style="margin-top:8px;">${rows}</div>
+                <div style="margin-top:8px;color:#8b949e;font-size:11px;">Tip: bấm vào mũi tên để thu gọn khung này khi muốn tập trung chọn.</div>
+            </details>`;
+        })();
+
+        const html = opts.map((t,i)=>{
+            const hasSame = !!findTrait(t.part, t.element);
+            const occupied = isSlotOccupied(t.part);
+            let title = "";
+            let mode = "new"; // new | upgrade | replace
+            let target = null;
+            if (hasSame) {
+                mode = "upgrade";
+            } else if (occupied) {
+                target = player.traits.find(x => x.part===t.part && x.state==="ACTIVE");
+                if (target) {
+                    title = ` title="Sẽ thay thế ${target.name} Lv.${target.level}"`;
+                }
+                mode = "replace";
+            }
+            normTrait(t);
+            if (target) normalizeTraitColor(target);
+            const badge =
+                mode === "replace" ? `<span class="trait-badge trait-badge-replace">THAY THẾ</span>` :
+                mode === "upgrade" ? `<span class="trait-badge trait-badge-upgrade">UP CẤP</span>` :
+                `<span class="trait-badge trait-badge-new">LẮP MỚI</span>`;
+
+            const replaceLine = (mode === "replace" && target)
+                ? `<div style="margin-top:6px;color:#8b949e;font-size:12px;">${traitTagHTML(t)} → ${traitTagHTML(target)}</div>`
+                : "";
+
+            const style = mode === "replace" ? `style="border-color:${t.color}; background:${t.color}33; color:#fff;"` : `style="border-color:${t.color}; background:${t.color}33; color:#fff;"`;
+            const tt = traitText(t);
+            return `<button class="evo-option" data-mode="${mode}" data-evo-pick="${i}" ${style}${title}>
+                <strong>${t.name}</strong> ${badge}<br>
+                <small>${t.desc || ""}</small>
+                ${tt.base ? `<div style="margin-top:6px;color:#8b949e;font-size:12px;">${tt.base}</div>` : ""}
+                ${tt.inc ? `<div style="margin-top:6px;color:#8b949e;font-size:12px;">${tt.inc}</div>` : ""}
+                ${tt.total ? `<div style="margin-top:2px;color:#fff;font-size:12px;"><strong>${tt.total}</strong></div>` : ""}
+                ${t.passive?`<br><span style="color:#fff">★ ${t.passive}</span>`:''}
+                ${replaceLine}
+            </button>`;
+        }).join("");
+        $("evo-content").innerHTML = currentTraitsSection + html;
+    }
+    function openEvoGun() {
+        if (window.gunRolled) { 
+            renderGunOptions(window.tempOpts || []); 
+            const btn = $("btn-evo-gun"); 
+            if (btn) btn.disabled = true; 
+            return; 
+        }
+        if(player.genPoints<50){ 
+            $("evo-content").innerHTML = `<div>Thiếu Gen (cần 50).</div>`; 
+            return; 
+        }
+        player.genPoints -= 50;
+        updateUI();
+        let opts=[]; for(let i=0;i<3;i++)opts.push(generateSynergyTrait());
+        window.tempOpts=opts;
+        window.gunRolled = true;
+        renderGunOptions(opts);
+        const btn = $("btn-evo-gun"); 
+        if (btn) btn.disabled = true;
+        const sbtn = $("btn-surgery"); 
+        if (sbtn) sbtn.disabled = true;
+    }
+    function openSurgery() {
+        if (player.traits.length===0) { $("evo-content").innerHTML = `<div>Chưa có gen.</div>`; return; }
+        let html = player.traits.map(normTrait).map((t,idx)=>{
+            const st = t.state==="ACTIVE"?"Hiện":"Ẩn";
+            return `<div style="border:1px solid var(--border-color);padding:8px;margin-bottom:6px;border-radius:6px;background:#0b0f14;">
+                <div>${traitTagHTML(t)} <strong>[${t.part}] Lv.${t.level} (${st})</strong></div>
+                <small>${t.desc}</small>
+                <button class="evo-option" data-cut-trait="${idx}">Tiêu Trừ Đặc Tính</button>
+            </div>`;
+        }).join("");
+        $("evo-content").innerHTML = html;
+    }
+    function removeTraitByIndex(idx) {
+        let t = player.traits[idx];
+        ensureTraitScalingFields(t);
+        let total = traitTotalVal(t);
+        if (t.type === "HP") { player.maxHp -= total; player.hp = Math.min(player.hp, player.maxHp); }
+        if (t.type === "ATK") player.atk -= total;
+        if (t.type === "DEF") player.def -= total;
+        if (t.type === "SPD") player.spd -= total;
+        if (t.type === "REGEN") player.regen -= total;
+        if (t.state==="ACTIVE") player.slots[t.part]=false;
+        player.traits.splice(idx,1);
+        updateUI();
+    }
+    function cutTrait(idx) {
+        removeTraitByIndex(idx);
+        openSurgery();
+    }
+    function closeModal() { $("modal-overlay").classList.add("hidden"); }
+    function doEvolve(i) {
+        let t=window.tempOpts[i];
+        // Không chấp nhận trait không có element (dữ liệu lỗi)
+        if (!t || !t.element) {
+            log("Lỗi Gen: đặc tính không có element (không thể lắp).", "danger");
+            showModal("LỖI GEN", "Đặc tính được tạo ra bị thiếu element. Hãy thử bắn lại.", false);
+            return;
+        }
+        const existing = findTrait(t.part, t.element);
+        if (existing) {
+            ensureTraitScalingFields(existing);
+            existing.level += 1;
+            const inc = rollUpgradeIncrement(existing);
+            existing.val = inc; // val giờ là "tăng gần nhất" (biến động theo lần up)
+            existing.totalVal = Number(existing.totalVal ?? 0) + inc;
+            applyTraitStats(existing, 1, inc);
+            if (existing.level >= 5) {
+                existing.state = "FUSED";
+                player.slots[existing.part] = false;
+            }
+            log(`Tiến hóa: ${existing.name} Lv.${existing.level} (+${inc}, Tổng: ${traitTotalVal(existing)})`,"new");
+            updateUI();
+            closeModal();
+            return;
+        }
+        if (isSlotOccupied(t.part)) {
+            const idx = player.traits.findIndex(x => x.part===t.part && x.state==="ACTIVE");
+            if (idx !== -1) {
+                log(`Thay thế: Tiêu trừ ${player.traits[idx].name} và lắp ${t.name}.`,"danger");
+                removeTraitByIndex(idx);
+            }
+        }
+        // Trait mới: khởi tạo field để hỗ trợ upgrade random sau này
+        ensureTraitScalingFields(t);
+        player.traits.push(t);
+        player.slots[t.part]=true;
+        applyTraitStats(t,1);
+        log(`Tiến hóa: ${t.name}`,"new");
+        updateUI();
+        closeModal();
+    }
 
     function showModal(title, msg, reload=false, customBody="") {
-        document.getElementById("modal-title").innerText = title;
-        document.getElementById("modal-desc").innerText = msg;
-        document.getElementById("modal-body").innerHTML = customBody;
-        document.getElementById("btn-close-modal").innerText = reload ? "Chơi lại" : "Đóng";
-        document.getElementById("btn-close-modal").onclick = reload ? () => location.reload() : closeModal;
-        document.getElementById("modal-overlay").classList.remove("hidden");
+        $("modal-title").innerText = title;
+        $("modal-desc").innerText = msg;
+        $("modal-body").innerHTML = customBody;
+        $("btn-close-modal").innerText = reload ? "Chơi lại" : "Đóng";
+        $("btn-close-modal").onclick = reload ? () => location.reload() : closeModal;
+        $("modal-overlay").classList.remove("hidden");
     }
+
+    // 1 listener cho các thao tác trong modal (evo pick / surgery / combat evo gun)
+    $("modal-overlay").addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (!btn || btn.disabled) return;
+
+        // Combat evo gun choice
+        if (btn.dataset.cgev) {
+            const targetId = Number(btn.dataset.cgev);
+            const mode = btn.dataset.mode;
+            return combatEvoGunChoose(targetId, mode);
+        }
+
+        // Evo tabs
+        const tabMap = { gun: openEvoGun, surgery: openSurgery };
+        const tab = btn.dataset.evoTab;
+        if (tab && tabMap[tab]) return tabMap[tab]();
+
+        // Pick evolve option
+        if (btn.dataset.evoPick !== undefined) {
+            const idx = Number(btn.dataset.evoPick);
+            if (Number.isFinite(idx)) return doEvolve(idx);
+        }
+
+        // Cut trait in surgery
+        if (btn.dataset.cutTrait !== undefined) {
+            const idx = Number(btn.dataset.cutTrait);
+            if (Number.isFinite(idx)) return cutTrait(idx);
+        }
+    });
 
     updateUI();
 
-    //đồng minh, thu phục, map
+    //đồng minh, căn cứ, map
 </script>
 
 </body>
